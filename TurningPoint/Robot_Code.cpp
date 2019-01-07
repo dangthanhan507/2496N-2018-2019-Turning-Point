@@ -34,26 +34,17 @@ int vision_track()
     //needs P-loop to adjust angle of robot to object
     //needs P-loop to adjust distance of robot to object
     //needs a function to eliminate all of the objects but one which is the highest flag it detects
-    //vision sensor snapshot detects an array of objects with a matrix of values that can be called
     while(true)
     {
         Vision.takeSnapshot(F_GREEN,3);
         Brain.Screen.setCursor(1,0);
-        Brain.Screen.print("CenterX: %d", Vision.largestObject.centerX);
-        Brain.Screen.setCursor(2,0);
-        Brain.Screen.print("CenterY: %d", Vision.largestObject.centerY);
-        Brain.Screen.setCursor(3,0);
-        Brain.Screen.print("Count: %d", Vision.objectCount);
-        Brain.Screen.setCursor(4,0);
-        Brain.Screen.print("Length: %d", Vision.largestObject.width);
-        Brain.Screen.setCursor(5,0);
-        Brain.Screen.print("Width: %d", Vision.largestObject.height);
-        Brain.Screen.setCursor(6,0);
-        Brain.Screen.print("Does Exist?: %b", Vision.largestObject.exists);
-        Brain.Screen.setCursor(7,0);
-        Brain.Screen.print("Width: %d", Vision.largestObject.id);
-        
-        task::sleep(15);
+        Brain.Screen.print("Object Count: %d", Vision.objectCount);
+        for(int i = 1; i <= Vision.objectCount;i++)
+        {
+            Brain.Screen.setCursor(i+1,0);
+            Brain.Screen.print("%d : Y-val: %d", i, Vision.objects[i-1].originY);
+        }
+        task::sleep(500);
     }
 }
 int check() //Prints Data onto Controller Screen to see Values for auton (not necessary after auton tuning)
@@ -68,10 +59,26 @@ int check() //Prints Data onto Controller Screen to see Values for auton (not ne
         Controller1.Screen.setCursor(2,0);
         Controller1.Screen.print("Accel: %d", Accelerometer.value(analogUnits::range8bit));
         Controller1.Screen.setCursor(3,0);
-        Controller1.Screen.print(auton_name[auton_index].c_str());
+        Controller1.Screen.print("FR: %.1f", FrontRight.rotation(rotationUnits::deg));
         task::sleep(20);
     }
 }
+struct PID
+{
+    double target = 90.0;
+    double preverror = 0.0;
+    double error = 0.0;
+    double kp = 150;
+    double ki = 40.0;
+    double kd = 830; 
+    double integral = 0.0;
+    double der = 0.0;
+    int value_l = 0;
+    int value_r = 0;    
+};
+PID go;
+PID turn;
+
 /*
 """///////////////////////////"""
            Auton Code
@@ -113,33 +120,12 @@ void pre_auton( void ) //first time setup for robot
     Ballintake.setRotation(0,rotationUnits::deg);
     Gyro.startCalibration();
 }
-
-double turn_target = 90.0;
-double turn_preverror = 0.0;
-double turn_error = 0.0;
-double turn_kp = 150;
-double turn_ki = 40.0;
-double turn_kd = 830; 
-double turn_int = 0.0;
-double turn_der = 0.0;
-int value_turn = 0;
-int turn()
+void v_chas(int volts_left, int volts_right)
 {
-   while(true)
-   {
-       //instead of the motor using velocity percentages for PID, they use voltages for more accurate turns
-       turn_preverror = turn_error;
-       turn_error = turn_target - Gyro.value(rotationUnits::deg);
-       if(abs((int)turn_error) < 4) turn_int+=turn_error;
-       else turn_int = 0;
-       turn_der = turn_error - turn_preverror;
-       value_turn = turn_kp*turn_error + turn_ki * turn_int + turn_kd * turn_der;
-       BR.spin(directionType::fwd,value_turn,voltageUnits::mV);
-       BL.spin(directionType::fwd,-value_turn,voltageUnits::mV);
-       FR.spin(directionType::fwd,value_turn,voltageUnits::mV);
-       FL.spin(directionType::fwd,-value_turn,voltageUnits::mV);
-       task::sleep(15);
-   }
+    BR.spin(directionType::fwd,volts_right,voltageUnits::mV);
+    FR.spin(directionType::fwd,volts_right,voltageUnits::mV);
+    FL.spin(directionType::fwd,volts_left,voltageUnits::mV);
+    BL.spin(directionType::fwd,volts_left,voltageUnits::mV);
 }
 #define obj_h 5
 #define obj_w 5
@@ -159,8 +145,8 @@ void load_catapult()
         CatapultLeft.spin(directionType::fwd,100,velocityUnits::pct);
         CatapultRight.spin(directionType::fwd,100,velocityUnits::pct);
     }
-    CatapultLeft.stop(brakeType::coast);
-    CatapultRight.stop(brakeType::coast);
+    CatapultLeft.stop(brakeType::hold);
+    CatapultRight.stop(brakeType::hold);
 }
 void shoot_catapult()
 {
@@ -170,13 +156,6 @@ void shoot_catapult()
     CatapultLeft.stop(brakeType::coast);
     CatapultRight.stop(brakeType::coast);
     task::sleep(100);
-}
-
-void load_balls()
-{
-    Ballintake.spin(directionType::fwd,100,velocityUnits::pct);
-    task::sleep(1000);
-    Ballintake.stop(brakeType::coast);
 }
 void reset_chas()
 {
@@ -203,47 +182,91 @@ void go_chassis(int degrees, int speed)
     reset_chas();
 }
 
-void stop_all()
+int turn_()
 {
-    FrontLeft.stop(vex::brakeType::coast);
-    FrontRight.stop(vex::brakeType::coast);
-    BackLeft.stop(vex::brakeType::coast);
-    BackRight.stop(vex::brakeType::coast);
-    CatapultLeft.stop(vex::brakeType::coast);
-    CatapultRight.stop(vex::brakeType::coast);
-    Ballintake.stop(vex::brakeType::coast);
-    Stick.stop(vex::brakeType::coast);
+   turn.kp = 150;
+   turn.ki = 40.0;
+   turn.kd = 830;
+   while(true)
+   {
+       //instead of the motor using velocity percentages for PID, they use voltages for more accurate turns
+       turn.preverror = turn.error;
+       turn.error = turn.target - Gyro.value(rotationUnits::deg);
+       if(abs((int)turn.error) < 4) turn.integral+=turn.error;
+       else turn.integral = 0;
+       turn.der = turn.error - turn.preverror;
+       turn.value_r = turn.kp*turn.error + turn.ki * turn.integral + turn.kd * turn.der;
+       turn.value_l = -turn.value_r;
+       v_chas(turn.value_l,turn.value_r);
+       task::sleep(15);
+   }
+}
+
+int fwd_chas() // value created from this task will be used in the auto task
+{
+    go.kp = 75;
+    go.ki = 0;
+    go.kd = 750;
+    while(true)
+    {
+       go.preverror = go.error;
+       go.error = go.target - FrontRight.rotation(rotationUnits::deg);
+       if(abs((int)go.error) < 3) go.integral+=go.error;
+       else go.integral = 0;
+       go.der = go.error - go.preverror;
+       go.value_l = go.kp*go.error + go.ki * go.integral + go.kd * go.der;
+       go.value_r = go.value_l;
+       v_chas(go.value_l,go.value_r);
+       task::sleep(15);
+    }
+}
+int auto_motor_r = 0;
+int auto_motor_l = 0;
+double auto_kp = 100;
+double auto_error = 0.0;
+
+int auto_chas() //the value from this auto task uses fwd_chas values and will be used in slew task
+{
+    int auto_target = Gyro.value(rotationUnits::deg);
+    while(true)
+    {
+        auto_error = auto_target - Gyro.value(rotationUnits::deg);
+        auto_motor_r = go.value_r + auto_error*auto_kp;
+        auto_motor_l = go.value_l - auto_error*auto_kp;
+        task::sleep(15);
+    }
+}
+void v_fwd(int enc, int wait)
+{
+    go.target = enc;
+    task f(fwd_chas);
+    task straight(auto_chas);
+    task::sleep(wait);
+    task::stop(fwd_chas);
+    task::stop(auto_chas);
+    task::stop(slew_chas);
+}
+void v_turn(int target, int wait)
+{
+    turn.target = target;
+    task tur(turn_);
+    task::sleep(wait);
+    task::stop(turn_);
+    task::sleep(200);
+    reset_chas();
 }
 void park_robot()
 {
-    //code must be used with accelerometer to finish 
-    //use the z axis 
     FrontLeft.spin(directionType::fwd,100,velocityUnits::pct);
     FrontRight.spin(directionType::fwd,100,velocityUnits::pct);
     BackLeft.spin(directionType::fwd,100,velocityUnits::pct);
     BackRight.spin(directionType::fwd,100,velocityUnits::pct);
-    while(Accelerometer.value(analogUnits::range8bit) >accel_value-6) {} //first change of accel when front wheels get on plat
-    while(Accelerometer.value(analogUnits::range8bit) < accel_value-4) {} //second change when the entire robot is on plat
+    while(Accelerometer.value(analogUnits::range8bit) == accel_value) {} //first change of accel when front wheels get on plat
+    while(Accelerometer.value(analogUnits::range8bit) != accel_value) {} //second change when the entire robot is on plat
     FrontLeft.stop(brakeType::brake);
     FrontRight.stop(brakeType::brake);
     BackRight.stop(brakeType::brake);
     BackLeft.stop(brakeType::brake);
-}
-void ball_chassis(int enc_chas,int sp_chas, int wait, int sp_ball)
-{
-    Ballintake.spin(directionType::fwd,sp_ball,velocityUnits::pct);
-    go_chassis(enc_chas,sp_chas);
-    task::sleep(wait);
-    Ballintake.stop(brakeType::coast);    
-}
-void turn_aut(int target, int wait)
-{
-    turn_target = target;
-    task tur(turn);
-    task::sleep(wait);
-    task::stop(turn);
-    task::sleep(200);
-    reset_chas();
 }
 void autonomous( void ) //autonomous code that runs for 15 seconds
 {
@@ -252,22 +275,24 @@ void autonomous( void ) //autonomous code that runs for 15 seconds
   {
       case 0: //top red square no park
       {
-          //load_catapult();
+          v_fwd(-2000,10000);
+          v_fwd(2000,10000);
+          v_turn(-90,2000);
+          
+          /*load_catapult();
           ball_chassis(-900,-65,1500,-100);
-          //go_chassis(1150,90);
-          //turn_aut(-90,2000);
-          //shoot_catapult();
-          //go_chassis(1400,90);
-          //go_chassis(-100,-90);
-          //turn_aut(-15,600);
-          //go_chassis(-200,90);
-          //turn_aut(-17,500);
-          //ball_chassis(-600,-90,1000,100);
-          //load_catapult();
-          //turn_aut(45,500);
-          //go_chassis(-500,-90);
-          //go_chassis(500,90);
-          break;
+          go_chassis(1150,90);
+          turn_aut(-98,2000);
+          shoot_catapult();
+          go_chassis(1400,90);
+          go_chassis(-200,-90);
+          turn_aut(-15,600);
+          go_chassis(-200,-90);
+          turn_aut(-13,500);
+          ball_chassis(-600,-90,1000,100);
+          load_catapult();
+          go_chassis(-105,-90);
+          */break;
       }
       case 1: //top red square park
       {
@@ -399,6 +424,8 @@ void autonomous( void ) //autonomous code that runs for 15 seconds
       }
       case 8: //skills
       {
+          v_chas(-10000,-10000);
+          
           break;
       }
   }
@@ -516,6 +543,7 @@ void drive_stick_() // drive code for stick
 void usercontrol( void ) //teleoperator code
 {
   // User control code here, inside the loop
+    stop_all();
    task b(button_toggles);
    while(true)
    {
