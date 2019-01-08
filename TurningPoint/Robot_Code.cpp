@@ -75,9 +75,7 @@ struct PID
     double der = 0.0;
     int value_l = 0;
     int value_r = 0;    
-};
-PID go;
-PID turn;
+} go, turn;
 
 /*
 """///////////////////////////"""
@@ -165,23 +163,6 @@ void reset_chas()
     FrontLeft.setRotation(0,rotationUnits::deg);
 }
 
-void go_chassis(int degrees, int speed)
-{
-    while(abs((int)FrontRight.rotation(rotationUnits::deg)) < abs(degrees))
-    {
-        FrontLeft.spin(directionType::fwd,speed,velocityUnits::pct);
-        FrontRight.spin(directionType::fwd,speed,velocityUnits::pct);
-        BackLeft.spin(directionType::fwd,speed,velocityUnits::pct);
-        BackRight.spin(directionType::fwd,speed,velocityUnits::pct);
-    }
-    FrontLeft.stop(brakeType::brake);
-    FrontRight.stop(brakeType::brake);
-    BackLeft.stop(brakeType::brake);
-    BackRight.stop(brakeType::brake);
-    task::sleep(200);
-    reset_chas();
-}
-
 int turn_()
 {
    turn.kp = 150;
@@ -244,7 +225,6 @@ void v_fwd(int enc, int wait)
     task::sleep(wait);
     task::stop(fwd_chas);
     task::stop(auto_chas);
-    task::stop(slew_chas);
 }
 void v_turn(int target, int wait)
 {
@@ -268,167 +248,123 @@ void park_robot()
     BackRight.stop(brakeType::brake);
     BackLeft.stop(brakeType::brake);
 }
+void top_red()
+{
+    v_fwd(-2000,10000);
+    v_fwd(2000,10000);
+    v_turn(-90,2000);
+    shoot_catapult();
+    v_fwd(1500,5000);
+    v_fwd(-1000,1000);
+    v_turn(-45,2000);
+    v_fwd(-2000,2000);
+    v_turn(45,2000);
+    v_fwd(-1000,1000);
+    v_fwd(1000,1000);
+}
+void top_red_park()
+{
+    v_fwd(-2000,10000);
+    v_fwd(2000,10000);
+    v_turn(-90,2000);
+    shoot_catapult();
+    v_fwd(1500,5000);
+    v_fwd(-1000,1000);
+    v_turn(-45,2000);
+    v_fwd(-2000,2000);
+    v_turn(-90,2000);
+    park_robot();
+}
+void top_blue()
+{
+    v_fwd(-2000,10000);
+    v_fwd(2000,10000);
+    v_turn(90,2000);
+    shoot_catapult();
+    v_fwd(1500,5000);
+    v_fwd(-1000,1000);
+    v_turn(45,2000);
+    v_fwd(-2000,2000);
+    v_turn(-45,2000);
+    v_fwd(-1000,1000);
+    v_fwd(1000,1000);
+}
+void top_blue_park()
+{
+    v_fwd(-2000,10000);
+    v_fwd(2000,10000);
+    v_turn(90,2000);
+    shoot_catapult();
+    v_fwd(1500,5000);
+    v_fwd(-1000,1000);
+    v_turn(45,2000);
+    v_fwd(-2000,2000);
+    v_turn(90,2000);
+    park_robot();
+}
+void bot_red()
+{
+    v_fwd(-2000,2000);
+    v_fwd(1000,1000);
+    v_turn(-45,1000);
+    v_fwd(-1200,1200);
+    v_fwd(1400,1400);
+    v_turn(0,1000);
+    v_fwd(2000,2000);
+    v_turn(-90,2000);
+    shoot_catapult();
+}
+void bot_red_park()
+{
+    v_fwd(-2000,2000);
+    v_fwd(1000,1000);
+    v_turn(-45,1000);
+    v_fwd(-1200,1200);
+    v_fwd(1400,1400);
+    v_turn(0,1000);
+    v_fwd(2000,2000);
+    v_turn(-90,2000);
+    shoot_catapult();
+    v_fwd(1600,1500);
+    v_turn(0,2000);
+    park_robot();
+}
+void bot_blue()
+{
+    v_fwd(-2000,2000);
+    v_fwd(1000,1000);
+    v_turn(45,1000);
+    v_fwd(-1200,1200);
+    v_fwd(1400,1400);
+    v_turn(0,1000);
+    v_fwd(2000,2000);
+    v_turn(90,2000);
+    shoot_catapult();
+}
+void bot_blue_park()
+{
+    v_fwd(-2000,2000);
+    v_fwd(1000,1000);
+    v_turn(45,1000);
+    v_fwd(-1200,1200);
+    v_fwd(1400,1400);
+    v_turn(0,1000);
+    v_fwd(2000,2000);
+    v_turn(90,2000);
+    shoot_catapult();
+    v_fwd(1600,1500);
+    v_turn(0,2000);
+    park_robot();   
+} 
+void skills()
+{
+    
+}
+void (*autonPtr[])() = {top_red,top_red_park,top_blue,top_blue_park,bot_red,bot_red_park,bot_blue,bot_blue_park,skills};
 void autonomous( void ) //autonomous code that runs for 15 seconds
 {
   reset_chas();
-  switch(auton_index)
-  {
-      case 0: //top red square no park
-      {
-          v_fwd(-2000,10000);
-          v_fwd(2000,10000);
-          v_turn(-90,2000);
-          
-          /*load_catapult();
-          ball_chassis(-900,-65,1500,-100);
-          go_chassis(1150,90);
-          turn_aut(-98,2000);
-          shoot_catapult();
-          go_chassis(1400,90);
-          go_chassis(-200,-90);
-          turn_aut(-15,600);
-          go_chassis(-200,-90);
-          turn_aut(-13,500);
-          ball_chassis(-600,-90,1000,100);
-          load_catapult();
-          go_chassis(-105,-90);
-          */break;
-      }
-      case 1: //top red square park
-      {
-          load_catapult();
-          ball_chassis(-1200,-65,1500,-100);
-          go_chassis(1100,90);
-          turn_aut(-98,2000);
-          go_chassis(-100,90);
-          shoot_catapult();
-          go_chassis(1400,90);
-          go_chassis(-100,-90);
-          turn_aut(-15,600);
-          go_chassis(-200,90);
-          turn_aut(-17,500);
-          ball_chassis(-600,-90,1000,100);
-          load_catapult();
-          //An's untuned autonomous extension
-          turn_aut(45,500);
-          go_chassis(-500,-90);
-          go_chassis(500,90);
-          //An's parking auton
-          turn_aut(-90,600);
-          //park_robot();
-          break;              
-      }
-      case 2: //top blue square no park
-      {
-          load_catapult();
-          ball_chassis(-1200,-65,1500,-100);
-          go_chassis(1100,90);
-          turn_aut(98,2000);
-          go_chassis(-100,90);
-          shoot_catapult();
-          go_chassis(1400,90);
-          go_chassis(-100,-90);
-          turn_aut(15,600);
-          go_chassis(-200,90);
-          turn_aut(17,500);
-          ball_chassis(-600,-90,1000,100);
-          load_catapult();
-          turn_aut(-45,500);
-          go_chassis(-500,-90);
-          go_chassis(500,90);
-          turn_aut(90,600);
-          break;
-      }
-      case 3: //top blue square park
-      {
-          load_catapult();
-          ball_chassis(-1200,-65,1500,-100);
-          go_chassis(1100,90);
-          turn_aut(98,2000);
-          go_chassis(-100,90);
-          shoot_catapult();
-          go_chassis(1400,90);
-          go_chassis(-100,-90);
-          turn_aut(15,600);
-          go_chassis(-200,90);
-          turn_aut(17,500);
-          ball_chassis(-600,-90,1000,100);
-          turn_aut(-45,500);
-          go_chassis(-500,-90);
-          go_chassis(500,90);
-          turn_aut(90,600);
-          park_robot();
-          break;
-      }
-      case 4: //bot red square no park
-      {
-          load_catapult();
-          ball_chassis(-2000,-60,1500,-100);
-          go_chassis(2000,90);
-          turn_aut(-98,2000);
-          shoot_catapult();
-          turn_aut(0,2000);
-          go_chassis(-1000,-90);
-          turn_aut(45,1000);
-          ball_chassis(-600,-90,1000,100);
-          go_chassis(600,90);
-          turn_aut(-90,3000);
-          break;
-      }
-      case 5: //bot red square park
-      {
-          load_catapult();
-          ball_chassis(-2000,-60,1500,-100);
-          go_chassis(2000,90);
-          turn_aut(-98,2000);
-          shoot_catapult();
-          turn_aut(0,2000);
-          go_chassis(-1000,-90);
-          turn_aut(45,1000);
-          ball_chassis(-600,-90,1000,100);
-          go_chassis(600,90);
-          turn_aut(-90,3000);
-          park_robot();
-          break;
-      }
-      case 6: //bot blue square no park
-      {
-          load_catapult();
-          ball_chassis(-2000,-60,1500,-100);
-          go_chassis(2000,90);
-          turn_aut(98,2000);
-          shoot_catapult();
-          turn_aut(0,2000);
-          go_chassis(-1000,-90);
-          turn_aut(-45,1000);
-          ball_chassis(-600,-90,1000,100);
-          go_chassis(600,90);
-          turn_aut(90,3000);
-          break;          
-      }
-      case 7: //bot blue square park
-      {
-          load_catapult();
-          ball_chassis(-2000,-60,1500,-100);
-          go_chassis(2000,90);
-          turn_aut(98,2000);
-          shoot_catapult();
-          turn_aut(0,2000);
-          go_chassis(-1000,-90);
-          turn_aut(-45,1000);
-          ball_chassis(-600,-90,1000,100);
-          go_chassis(600,90);
-          turn_aut(90,3000);
-          park_robot();
-          break;
-      }
-      case 8: //skills
-      {
-          v_chas(-10000,-10000);
-          
-          break;
-      }
-  }
+  &(autonPtr[auton_index]);
 }
 /*
 """///////////////////////////"""
@@ -455,15 +391,6 @@ void drive_tank() //tank_drive for robot and stopping with whatever brakes in th
         FrontLeft.spin(directionType::fwd,left_axis,velocityUnits::pct);
         BackRight.spin(directionType::fwd,right_axis,velocityUnits::pct);
         FrontRight.spin(directionType::fwd,right_axis,velocityUnits::pct);
- }
-void drive_arcade()
-{ // code for arcade drive on robot
-    left_axis = Controller1.Axis3.value()+Controller1.Axis1.value();
-    right_axis = Controller1.Axis3.value()-Controller1.Axis1.value();
-    BackLeft.spin(directionType::fwd,left_axis,velocityUnits::pct);
-    FrontLeft.spin(directionType::fwd,left_axis,velocityUnits::pct);
-    BackRight.spin(directionType::fwd,right_axis,velocityUnits::pct);
-    FrontRight.spin(directionType::fwd,right_axis,velocityUnits::pct);
 }
 void drive_catapult()
 {
@@ -543,7 +470,6 @@ void drive_stick_() // drive code for stick
 void usercontrol( void ) //teleoperator code
 {
   // User control code here, inside the loop
-    stop_all();
    task b(button_toggles);
    while(true)
    {
@@ -557,8 +483,8 @@ void usercontrol( void ) //teleoperator code
 int main() 
 {
     Vision.setWifiMode(vision::wifiMode::off);
-    pre_auton();
     LCD_selector();
+    pre_auton();
     task vis(vision_track);
     task newtask(check);
     Competition.autonomous( autonomous );
