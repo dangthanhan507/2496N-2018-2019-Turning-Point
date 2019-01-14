@@ -5,13 +5,18 @@ using namespace std;
 -----------------------------------
 ///////////////////////////////////
 */
+
+//auton selector which uses an array of string of auton names which will be displayed on the controller lcd
 #define name_length (sizeof(auton_name)/sizeof(auton_name[0]))
 string auton_name[] = {"red_flag", "red_flag_park", "blue_flag", "blue_flag_park", "red_bot", "red_bot_park", "blue_bot", "blue_bot_park","skills"};
+//auton_index is the index for the auton_name array and the auton pointer array of functions
 int auton_index = 0;
 bool catapult_power = false;
 bool catapult_auto = false;
 bool drive_reverse = false;
 int accel_value;
+//this thread checks for button toggles and switches booleans accordingly
+//this is separate to make sure that toggling can happen at any time during teleop
 int button_toggles()
 {
     while(true)
@@ -28,12 +33,12 @@ int button_toggles()
         }
     }
 }
+//vision_track uses a thread to print vision values on the brain LCD
 int vision_track()
 {
     Brain.Screen.clearScreen();
     //needs P-loop to adjust angle of robot to object
     //needs P-loop to adjust distance of robot to object
-    //needs a function to eliminate all of the objects but one which is the highest flag it detects
     while(true)
     {
         Vision.takeSnapshot(F_GREEN,3);
@@ -47,6 +52,7 @@ int vision_track()
         task::sleep(500);
     }
 }
+//check uses a thread to print different robot values onto the controller lcd. 
 int check() //Prints Data onto Controller Screen to see Values for auton (not necessary after auton tuning)
 {
     Controller1.Screen.clearScreen();
@@ -63,6 +69,7 @@ int check() //Prints Data onto Controller Screen to see Values for auton (not ne
         task::sleep(20);
     }
 }
+//this structure pid will allow for multiple pid implementations by creating a new variable defined PID 
 struct PID
 {
     double target = 90.0;
@@ -82,6 +89,7 @@ struct PID
            Auton Code
 """///////////////////////////"""
 */
+//Selector code on LCD to choose auton
 void LCD_selector()
 {
     Controller1.Screen.clearScreen();
@@ -197,7 +205,6 @@ int fwd_chas() // value created from this task will be used in the auto task
        go.der = go.error - go.preverror;
        go.value_l = go.kp*go.error + go.ki * go.integral + go.kd * go.der;
        go.value_r = go.value_l;
-       v_chas(go.value_l,go.value_r);
        task::sleep(15);
     }
 }
@@ -214,20 +221,30 @@ int auto_chas() //the value from this auto task uses fwd_chas values and will be
         auto_error = auto_target - Gyro.value(rotationUnits::deg);
         auto_motor_r = go.value_r + auto_error*auto_kp;
         auto_motor_l = go.value_l - auto_error*auto_kp;
+        v_chas(auto_motor_l,auto_motor_r);
         task::sleep(15);
     }
 }
 void v_fwd(int enc, int wait)
 {
+    reset_chas();
     go.target = enc;
     task f(fwd_chas);
     task straight(auto_chas);
     task::sleep(wait);
     task::stop(fwd_chas);
     task::stop(auto_chas);
+    reset_chas();
+}
+void v_ball(int enc, int wait, int ball)
+{
+    Ballintake.spin(directionType::fwd,ball,velocityUnits::pct);
+    v_fwd(enc,wait);
+    Ballintake.stop(brakeType::coast);
 }
 void v_turn(int target, int wait)
 {
+    reset_chas();
     turn.target = target;
     task tur(turn_);
     task::sleep(wait);
@@ -248,66 +265,81 @@ void park_robot()
     BackRight.stop(brakeType::brake);
     BackLeft.stop(brakeType::brake);
 }
+void stop_chassis()
+{
+    FrontLeft.stop(brakeType::coast);
+    FrontRight.stop(brakeType::coast);
+    BackRight.stop(brakeType::coast);
+    BackLeft.stop(brakeType::coast);
+}
+void gyro_wait()
+{
+    Gyro.startCalibration();
+    while(Gyro.isCalibrating()) {}
+}
 void top_red()
 {
-    v_fwd(-2000,10000);
-    v_fwd(2000,10000);
-    v_turn(-90,2000);
+    load_catapult();
+    v_ball(-1000,2000,-100);
+    v_fwd(1250,1400);
+    v_turn(-94,1000);
     shoot_catapult();
-    v_fwd(1500,5000);
+    v_turn(-90,700);
+    v_fwd(1500,1500);
+    v_fwd(-200,700);
+    v_turn(-45,1000);
+    v_ball(-800,1000,50);
+    v_turn(50,1000);
     v_fwd(-1000,1000);
-    v_turn(-45,2000);
-    v_fwd(-2000,2000);
-    v_turn(45,2000);
-    v_fwd(-1000,1000);
-    v_fwd(1000,1000);
+    v_fwd(1000,500);
+    stop_chassis();
 }
 void top_red_park()
 {
-    v_fwd(-2000,10000);
+    v_ball(-2000,2000,-100);
     v_fwd(2000,10000);
     v_turn(-90,2000);
     shoot_catapult();
     v_fwd(1500,5000);
     v_fwd(-1000,1000);
     v_turn(-45,2000);
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,100);
     v_turn(-90,2000);
     park_robot();
 }
 void top_blue()
 {
-    v_fwd(-2000,10000);
+    v_ball(-2000,10000,-100);
     v_fwd(2000,10000);
     v_turn(90,2000);
     shoot_catapult();
     v_fwd(1500,5000);
     v_fwd(-1000,1000);
     v_turn(45,2000);
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,100);
     v_turn(-45,2000);
     v_fwd(-1000,1000);
     v_fwd(1000,1000);
 }
 void top_blue_park()
 {
-    v_fwd(-2000,10000);
+    v_ball(-2000,2000,-100);
     v_fwd(2000,10000);
     v_turn(90,2000);
     shoot_catapult();
     v_fwd(1500,5000);
     v_fwd(-1000,1000);
     v_turn(45,2000);
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,100);
     v_turn(90,2000);
     park_robot();
 }
 void bot_red()
 {
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,-100);
     v_fwd(1000,1000);
     v_turn(-45,1000);
-    v_fwd(-1200,1200);
+    v_ball(-1200,1200,100);
     v_fwd(1400,1400);
     v_turn(0,1000);
     v_fwd(2000,2000);
@@ -316,10 +348,10 @@ void bot_red()
 }
 void bot_red_park()
 {
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,-100);
     v_fwd(1000,1000);
     v_turn(-45,1000);
-    v_fwd(-1200,1200);
+    v_ball(-1200,1200,100);
     v_fwd(1400,1400);
     v_turn(0,1000);
     v_fwd(2000,2000);
@@ -331,10 +363,10 @@ void bot_red_park()
 }
 void bot_blue()
 {
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,-100);
     v_fwd(1000,1000);
     v_turn(45,1000);
-    v_fwd(-1200,1200);
+    v_ball(-1200,1200,100);
     v_fwd(1400,1400);
     v_turn(0,1000);
     v_fwd(2000,2000);
@@ -343,10 +375,10 @@ void bot_blue()
 }
 void bot_blue_park()
 {
-    v_fwd(-2000,2000);
+    v_ball(-2000,2000,-100);
     v_fwd(1000,1000);
     v_turn(45,1000);
-    v_fwd(-1200,1200);
+    v_ball(-1200,1200,100);
     v_fwd(1400,1400);
     v_turn(0,1000);
     v_fwd(2000,2000);
@@ -358,13 +390,37 @@ void bot_blue_park()
 } 
 void skills()
 {
-    
+    v_ball(-2000,2000,-100);
+    v_fwd(2000,2000);
+    v_turn(-91,1000);
+    shoot_catapult();
+    v_fwd(2000,2000);
+    gyro_wait(); //gyro value resets to zero
+    v_fwd(600,500);
+    v_turn(45,1000);
+    v_ball(-2000,2000,100);
+    v_turn(135,1000);
+    v_fwd(-1500,2000);
+    v_fwd(1500,2000);
+    v_fwd(90,500);
+    v_ball(-3000,3000,100);
+    v_fwd(100,500);
+    v_turn(0,1000);
+    v_fwd(-2000,2000);
+    gyro_wait();
+    v_fwd(4000,4000);
+    v_turn(90,1000);
+    v_ball(-2000,2000,-100);
+    v_fwd(2000,1800);
+    v_turn(180,1000);
+    shoot_catapult();
+    park_robot();
 }
-void (*autonPtr[])() = {top_red,top_red_park,top_blue,top_blue_park,bot_red,bot_red_park,bot_blue,bot_blue_park,skills};
+void (*autonPtr[])() = {&top_red,&top_red_park,&top_blue,&top_blue_park,&bot_red,&bot_red_park,&bot_blue,&bot_blue_park,&skills};
 void autonomous( void ) //autonomous code that runs for 15 seconds
 {
   reset_chas();
-  &(autonPtr[auton_index]);
+  (*autonPtr[auton_index])();
 }
 /*
 """///////////////////////////"""
@@ -386,6 +442,8 @@ void drive_tank() //tank_drive for robot and stopping with whatever brakes in th
         left_axis = Controller1.Axis3.value();
         right_axis = Controller1.Axis2.value();
     }
+    if(abs(left_axis) < 3) left_axis = 0;
+    if(abs(right_axis) < 3) right_axis = 0;
     //main code for tank drive using left and right joystick vertical axis
         BackLeft.spin(directionType::fwd,left_axis,velocityUnits::pct);
         FrontLeft.spin(directionType::fwd,left_axis,velocityUnits::pct);
@@ -480,7 +538,7 @@ void usercontrol( void ) //teleoperator code
    }
 }
 //Runs the teleop and autonomous in the robot.
-int main() 
+int main()
 {
     Vision.setWifiMode(vision::wifiMode::off);
     LCD_selector();
