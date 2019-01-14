@@ -58,4 +58,4 @@ vision::signature SIG_4 (4, 0, 0, 0, 0, 0, 0, 3, 0);
 vision::signature SIG_5 (5, 0, 0, 0, 0, 0, 0, 3, 0);   
 vision::signature SIG_6 (6, 0, 0, 0, 0, 0, 0, 3, 0);
 vision::signature SIG_7 (7, 0, 0, 0, 0, 0, 0, 3, 0);
-vision Vision (vex::PORT20, 50, F_BLUE, F_GREEN, F_RED, SIG_4, SIG_5, SIG_6, SIG_7);
+vex::vision Vision (vex::PORT20, 50, F_BLUE, F_GREEN, F_RED, SIG_4, SIG_5, SIG_6, SIG_7);
