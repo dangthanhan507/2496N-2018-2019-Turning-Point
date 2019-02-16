@@ -78,31 +78,32 @@ else{
 }
 //*********************** DRIVE TANKS FUNCTION ********************************
 void drive_tank(){
-	reverse_drive();
-	if(drive_reverse) { // checks if toggled
-		 // DECLARE variable in main()
-		 left_axis = -E_CONTROLLER_ANALOG_LEFT_Y;
-		 right_axis = -E_CONTROLLER_ANALOG_RIGHT_Y;
-		 side_axis = -E_CONTROLLER_ANALOG_LEFT_X;
-		}
-	else {//if it is toggled
-		 left_axis = E_CONTROLLER_ANALOG_LEFT_Y;
-		 right_axis = E_CONTROLLER_ANALOG_RIGHT_Y;
-		 side_axis = E_CONTROLLER_ANALOG_LEFT_X;
-  }
-	if(abs(E_CONTROLLER_ANALOG_LEFT_X) > 90 && abs(E_CONTROLLER_ANALOG_LEFT_X) > 80) {
-		//more unknown variables needed to be declared
-		drive_r = -side_axis/3;
-		drive_l = side_axis/3;
+reverse_drive();
+if(drive_reverse) { // checks if toggled
+// DECLARE variable in main()
+	left_axis = -E_CONTROLLER_ANALOG_LEFT_Y;
+	right_axis = -E_CONTROLLER_ANALOG_RIGHT_Y;
+	side_axis = -E_CONTROLLER_ANALOG_LEFT_X;
 	}
-	else {
-		drive_l = left_axis;
-		drive_r = right_axis;
+else {//if it is toggled
+	left_axis = E_CONTROLLER_ANALOG_LEFT_Y;
+	right_axis = E_CONTROLLER_ANALOG_RIGHT_Y;
+	side_axis = E_CONTROLLER_ANALOG_LEFT_X;
 	}
-	//MOTORS that need to be declared
-	BackLeft.move(drive_l);
-	FrontLeft.move(drive_l);
-	FrontRight.move(drive_r);
-	BackRight.move(drive_r);
+if(abs(E_CONTROLLER_ANALOG_LEFT_X) > 90 && abs(E_CONTROLLER_ANALOG_LEFT_X) > 80) {
+//more unknown variables: : Decleratioion drive_r && drive_l
+	drive_r = -side_axis/3;
+	drive_l = side_axis/3;
+	}
+else {
+	drive_l = left_axis;
+	drive_r = right_axis;
+	}
+//MOTORS that need to be declared
+//Values of drive_l && drive_r might need to be corrected:
+BackLeft.move(drive_l);
+FrontLeft.move(drive_l);
+FrontRight.move(drive_r);
+BackRight.move(drive_r);
 }
 #endif
