@@ -34,35 +34,28 @@ void drive_catapult()
 }
 
 //*********************** DRIVE BALL INTAKE ************************
-void drive_ball_intake()
-{
+void drive_ball_intake() {
 // Change motor ports to be with the current robot motor ports 
 // change the rpm for the correct gear set 
-	if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_L1) )
-  {
-		intake_motor.move_velocity(100);// configure the RPM 
-	}
-	else if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_L2) )
-  {
-		intake_motor.move_velocity(-100);// configure the rpm
-	}
-	else 
-  {
-	  intake_motor.move_velocty(0); // stops the motor 
-	}
+  if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_L1) ) {
+    intake_motor.move_velocity(100);// configure the RPM 
+    }
+  else if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_L2) ) {
+    intake_motor.move_velocity(-100);// configure the rpm
+    }
+  else  {
+    intake_motor.move_velocty(0); // stops the motor 
+    }
 }
 
 //***************************** DRIVE STICK *************************
-void drive_stick()// drive for stick 
-{
-  if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_Y)) 
-   {
-	  Stick.move_velocity(50); 
-	}
-	else if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_X))
-  {
-		Stick.move_velocity(-50);
-	}
+void drive_stick()// drive for stick {
+  if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_Y)) {
+    Stick.move_velocity(50); 
+    }
+  else if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_X)) {
+    Stick.move_velocity(-50);
+    }
 }
 
 ///**************************** DRIVE TANK **************************
