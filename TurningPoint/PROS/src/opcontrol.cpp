@@ -1,6 +1,6 @@
 #include "main.h"
 #include "config.h"
-#include "PID_CONTROLLER.h"
+#include "pidLib.h"
 #include "drive.h"
 using namespace pros;
 /*
