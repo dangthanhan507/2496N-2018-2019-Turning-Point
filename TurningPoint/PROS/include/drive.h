@@ -56,6 +56,9 @@ void drive_stick()// drive for stick {
   else if (master.get_digital_new_press (E_CONTROLLER_DIGITAL_X)) {
     Stick.move_velocity(-50);
     }
+  else {
+    Stick.move_velocity(0);
+    }
 }
 
 ///**************************** DRIVE TANK **************************
