@@ -1,26 +1,40 @@
 #include "main.h"
-
-void on_center_button() {
-	static bool pressed = false;
-	pressed = !pressed;
-	if (pressed) {
-		pros::lcd::set_text(2, "I was pressed!");
-	} else {
-		pros::lcd::clear_line(2);
-	}
-}
-
+#include "config.h"
+#include <string>
+using namespace pros;
 /**
  * Runs initialization code. This occurs as soon as the program is started.
  *
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
-void initialize() {
-	pros::lcd::initialize();
-	pros::lcd::set_text(1, "Hello PROS User!");
+#define AUTON_LENGTH 7
+void LCD_SELECTION()
+{
+	std::string auton[] = {"R_FLAG_TOP", "R_PARK_TOP", "R_FLAG_BOT", "R_PARK_BOT",
+	"B_FLAG_TOP", "B_PARK_TOP", "B_FLAG_BOT", "B_FLAG_BOT"};
+	controller.clear();
+	while(controller.get_digital_new_press(E_CONTROLLER_DIGITAL_UP)==false)
+	{
+		controller.set_text(0,0, auton[auton_index].c_str());
+		if(controller.get_digital_new_press(E_CONTROLLER_DIGITAL_RIGHT)
+	 && auton_index < 7)
+			auton_index++;
+		else if (controller.get_digital_new_press(E_CONTROLLER_DIGITAL_LEFT)
+	 && auton_index > 0)
+			auton_index--;
+		delay(20);
+	}
+}
 
-	pros::lcd::register_btn1_cb(on_center_button);
+void initialize()
+{
+	gyro.reset();
+	BL.tare_position();
+	BR.tare_position();
+	TL.tare_position();
+	TR.tare_position();
+
 }
 
 /**
@@ -39,4 +53,4 @@ void disabled() {}
  * This task will exit when the robot is enabled and autonomous or opcontrol
  * starts.
  */
-void competition_initialize() {}
+void competition_initialize() {LCD_SELECTION();}
