@@ -1,6 +1,6 @@
 #include "main.h"
 #include "config.h"
-// AN is a queer
+
 #ifndef DRIVE_H
 #define DRIVE_H
 
