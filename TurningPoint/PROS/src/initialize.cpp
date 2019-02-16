@@ -30,11 +30,7 @@ void LCD_SELECTION()
 void initialize()
 {
 	gyro.reset();
-	BL.tare_position();
-	BR.tare_position();
-	TL.tare_position();
-	TR.tare_position();
-
+	reset_chassis();
 }
 
 /**
