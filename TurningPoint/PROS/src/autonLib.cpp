@@ -1,10 +1,10 @@
 #include "main.h"
-#include "config.h"
-#include "robotLib.h"
-#include "autonLib.h"
-#include "PID.h"
+#include "customLib/config.h"
+#include "customLib/robotLib.h"
+#include "customLib/autonLib.h"
+#include "customLib/PID.h"
 
-void turn(double degrees, int ms)
+void turn(double degrees, int ms)//POSITION PID
 {
   PID turn(150,40,830);
   double turn_target = degrees;
@@ -12,7 +12,7 @@ void turn(double degrees, int ms)
   double pid_value = 0;
   while(pros::millis() <= timer + ms)
   {
-    pid_value = turn.Calc_POS(turn_target, gyro.get_value(),4);
+    pid_value = turn.Calculate(turn_target, gyro.get_value(),4);
     voltage_chassis(-pid_value,pid_value);
     pros::delay(15);
   }
@@ -22,7 +22,7 @@ void turn(double degrees, int ms)
 }
 
 
-void arc(double degrees, int ms, bool arc_r)
+void arc(double degrees, int ms, bool arc_r) //POSITION PID
 {
   PID arc(500,9,700);
   double pid_value = 0;
@@ -30,7 +30,7 @@ void arc(double degrees, int ms, bool arc_r)
   double timer = pros::millis();
   while(pros::millis() <= timer + ms)
   {
-    pid_value = arc.Calc_POS(arc_target, gyro.get_value(),3);
+    pid_value = arc.Calculate(arc_target, gyro.get_value(),3);
     if(arc_r) voltage_chassis(-pid_value,0);
     else voltage_chassis(0,pid_value);
     pros::delay(15);
@@ -41,7 +41,7 @@ void arc(double degrees, int ms, bool arc_r)
 }
 
 
-void forward(double encoders, int ms, int ball_intake)
+void forward(double encoders, int ms, int ball_intake) //POSITION PID
 {
   Ballintake.move(ball_intake);
   double auto_target = gyro.get_value();
@@ -52,8 +52,10 @@ void forward(double encoders, int ms, int ball_intake)
   PID auto_(75,0,0);
   while(pros::millis() <= timer + ms)
   {
-      fwd_value = fwd.Calc_POS(fwd_target,BR.get_encoder_units(),3);
-      auto_value = auto_.Calc_POS(auto_target,gyro.get_value(),2);
+      fwd_value = fwd.Calculate(fwd_target,BR.get_encoder_units(),3);
+      if(fwd_value >= 11500) fwd_value = 11500;
+      if(fwd_value <= -11500) fwd_value = -11500;
+      auto_value = auto_.Calculate(auto_target,gyro.get_value(),2);
       voltage_chassis(fwd_value - auto_value, fwd_value + auto_value);
       pros::delay(15);
   }
@@ -62,6 +64,7 @@ void forward(double encoders, int ms, int ball_intake)
   pros::delay(30);
   reset_chassis();
 }
+
 
 
 void load_catapult()
