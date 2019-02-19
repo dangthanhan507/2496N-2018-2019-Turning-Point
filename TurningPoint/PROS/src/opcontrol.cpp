@@ -1,7 +1,7 @@
 #include "main.h"
-#include "config.h"
-#include "pidLib.h"
-#include "drive.h"
+#include "customLib/config.h"
+#include "customLib/autonLib.h"
+#include "customLib/drive.h"
 using namespace pros;
 /*
  * Runs the operator control code. This function will be started in its own task
@@ -26,6 +26,7 @@ void opcontrol()
 		drive_ball_intake();
 		drive_catapult();
 		drive_stick();
+		drive_vision();
 		pros::delay(25);
 	}
 }

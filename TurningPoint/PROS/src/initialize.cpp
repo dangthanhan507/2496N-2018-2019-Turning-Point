@@ -1,5 +1,6 @@
 #include "main.h"
-#include "config.h"
+#include "customLib/config.h"
+#include "customLib/robotLib.h"
 #include <string>
 using namespace pros;
 /**
